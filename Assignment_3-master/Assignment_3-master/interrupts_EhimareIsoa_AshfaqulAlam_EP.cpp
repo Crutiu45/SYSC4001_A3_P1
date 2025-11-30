@@ -104,7 +104,6 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
         //////////////////////////SCHEDULER//////////////////////////////
         if (running.PID == -1) {
             if (!ready_queue.empty()) {
-                // EP: lower PID == higher priority (same selection code as above)
                 int best_idx = 0;
                 for (size_t i = 1; i < ready_queue.size(); ++i)
                     if (ready_queue[i].PID < ready_queue[best_idx].PID)
@@ -117,20 +116,17 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
                 execution_status += print_exec_status(current_time, running.PID, READY, RUNNING);
             }
         } else {
-            // 1. Decrement CPU time first
             if (running.remaining_time > 0)
                 running.remaining_time--;
 
-            // 2. Increment CPU time since last I/O
             running.cpu_since_last_io++;
 
-            // 3. Check if process finishes BEFORE triggering I/O
             if (running.remaining_time == 0) {
                 execution_status += print_exec_status(current_time, running.PID, RUNNING, TERMINATED);
                 terminate_process(running, job_list);
                 idle_CPU(running);
             }
-            // 4. Trigger I/O EXACTLY when cpu_since_last_io == io_freq
+
             else if (running.io_freq > 0 && running.cpu_since_last_io == running.io_freq) {
 
                 unsigned int wake_at = current_time + running.io_duration;
@@ -153,7 +149,6 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
 
         if (running.PID == -1) {
             if (!ready_queue.empty()) {
-                // EP: lower PID == higher priority
                 int best_idx = 0;
                 for (size_t i = 1; i < ready_queue.size(); ++i) {
                     if (ready_queue[i].PID < ready_queue[best_idx].PID)

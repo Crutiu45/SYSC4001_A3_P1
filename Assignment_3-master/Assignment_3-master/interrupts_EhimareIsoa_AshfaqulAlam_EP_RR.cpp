@@ -84,8 +84,10 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
                 if (wait_wakeup[i] <= current_time) {
                     PCB proc = wait_queue[i];
                     proc.state = READY;
+                    proc.cpu_since_last_io = 0;         
                     ready_queue.push_back(proc);
                     execution_status += print_exec_status(current_time, proc.PID, WAITING, READY);
+                    sync_queue(job_list, proc);
                 } else {
                     still_waiting.push_back(wait_queue[i]);
                     still_wakeup.push_back(wait_wakeup[i]);
@@ -99,7 +101,6 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
         //////////////////////////SCHEDULER//////////////////////////////
          if (running.PID == -1) {
             if (!ready_queue.empty()) {
-                // select highest priority (derived from PID as before)
                 int best_idx = 0;
                 for (size_t i = 1; i < ready_queue.size(); ++i) {
                     if (ready_queue[i].PID < ready_queue[best_idx].PID) best_idx = (int)i;
@@ -110,11 +111,17 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
                 slice_start = current_time;
             }
         } else {
-            // Running: advance 1 ms
             if (running.remaining_time > 0) running.remaining_time -= 1;
 
-            // Option A I/O: calendar-time I/O
-            if (running.io_freq > 0 && current_time > 0 && (current_time % running.io_freq) == 0) {
+            running.cpu_since_last_io++;
+
+            if (running.remaining_time == 0) {
+                execution_status += print_exec_status(current_time, running.PID, RUNNING, TERMINATED);
+                terminate_process(running, job_list);
+                idle_CPU(running);
+            }
+            else if (running.io_freq > 0 && running.cpu_since_last_io == running.io_freq) {
+                running.cpu_since_last_io = 0;
                 unsigned int wake_at = current_time + running.io_duration;
                 execution_status += print_exec_status(current_time, running.PID, RUNNING, WAITING);
                 running.state = WAITING;
@@ -122,14 +129,8 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
                 wait_wakeup.push_back(wake_at);
                 sync_queue(job_list, running);
                 idle_CPU(running);
-            } else if (running.remaining_time == 0) {
-                execution_status += print_exec_status(current_time, running.PID, RUNNING, TERMINATED);
-                terminate_process(running, job_list);
-                idle_CPU(running);
             } else {
-                // Check quantum expiry for preemption
                 if ((current_time - slice_start + 1) >= QUANTUM) {
-                    // preempt and requeue with READY status (back of ready_queue)
                     execution_status += print_exec_status(current_time, running.PID, RUNNING, READY);
                     running.state = READY;
                     ready_queue.push_back(running);
