@@ -124,6 +124,7 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
             if (running.remaining_time == 0) {
                 execution_status += print_exec_status(current_time, running.PID, RUNNING, TERMINATED);
                 terminate_process(running, job_list);
+                sync_queue(job_list, running); 
                 idle_CPU(running);
             }
 
