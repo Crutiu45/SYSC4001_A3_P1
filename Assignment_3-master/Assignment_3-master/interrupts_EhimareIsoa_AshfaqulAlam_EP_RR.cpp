@@ -5,7 +5,7 @@
  * 
  */
 
-#include<interrupts_student1_student2.hpp>
+#include<interrupts_EhimareIsoa_AshfaqulAlam.hpp>
 
 void FCFS(std::vector<PCB> &ready_queue) {
     std::sort( 

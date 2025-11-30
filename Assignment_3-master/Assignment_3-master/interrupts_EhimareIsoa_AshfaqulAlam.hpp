@@ -5,8 +5,8 @@
  * 
  */
 
-#ifndef INTERRUPTS_HPP_
-#define INTERRUPTS_HPP_
+#ifndef INTERRUPTS_EHIMAREISOA_ASHFAQULALAM_HPP_
+#define INTERRUPTS_EHIMAREISOA_ASHFAQULALAM_HPP_
 
 #include<iostream>
 #include<fstream>
