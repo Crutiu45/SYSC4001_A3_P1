@@ -101,7 +101,7 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
                 // find index of highest-priority process (max PID)
                 int best_idx = 0;
                 for (size_t i = 1; i < ready_queue.size(); ++i) {
-                    if (ready_queue[i].PID > ready_queue[best_idx].PID) best_idx = (int)i;
+                    if (ready_queue[i].PID < ready_queue[best_idx].PID) best_idx = (int)i;
                 }
                 // move chosen to back so run_process (which pops back) runs it
                 if ((size_t)best_idx != ready_queue.size() - 1) std::swap(ready_queue[best_idx], ready_queue.back());

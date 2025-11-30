@@ -102,7 +102,7 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
                 // select highest priority (derived from PID as before)
                 int best_idx = 0;
                 for (size_t i = 1; i < ready_queue.size(); ++i) {
-                    if (ready_queue[i].PID > ready_queue[best_idx].PID) best_idx = (int)i;
+                    if (ready_queue[i].PID < ready_queue[best_idx].PID) best_idx = (int)i;
                 }
                 if ((size_t)best_idx != ready_queue.size() - 1) std::swap(ready_queue[best_idx], ready_queue.back());
                 run_process(running, job_list, ready_queue, current_time);
