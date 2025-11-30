@@ -12,17 +12,17 @@
 |                24 |  6 |     READY |   RUNNING |
 |                25 |  4 |   WAITING |     READY |
 |                39 |  6 |   RUNNING |TERMINATED |
-|                40 |  8 |     READY |   RUNNING |
-|                44 |  8 |   RUNNING |   WAITING |
-|                45 |  4 |     READY |   RUNNING |
-|                46 |  8 |   WAITING |     READY |
-|                49 |  4 |   RUNNING |   WAITING |
-|                50 |  8 |     READY |   RUNNING |
-|                51 |  4 |   WAITING |     READY |
-|                54 |  8 |   RUNNING |   WAITING |
-|                55 |  4 |     READY |   RUNNING |
-|                56 |  8 |   WAITING |     READY |
-|                59 |  4 |   RUNNING |TERMINATED |
-|                60 |  8 |     READY |   RUNNING |
-|                62 |  8 |   RUNNING |TERMINATED |
+|                40 |  4 |     READY |   RUNNING |
+|                44 |  4 |   RUNNING |   WAITING |
+|                45 |  8 |     READY |   RUNNING |
+|                46 |  4 |   WAITING |     READY |
+|                49 |  8 |   RUNNING |   WAITING |
+|                50 |  4 |     READY |   RUNNING |
+|                51 |  8 |   WAITING |     READY |
+|                54 |  4 |   RUNNING |TERMINATED |
+|                55 |  8 |     READY |   RUNNING |
+|                59 |  8 |   RUNNING |   WAITING |
+|                61 |  8 |   WAITING |     READY |
+|                61 |  8 |     READY |   RUNNING |
+|                63 |  8 |   RUNNING |TERMINATED |
 +------------------------------------------------+
