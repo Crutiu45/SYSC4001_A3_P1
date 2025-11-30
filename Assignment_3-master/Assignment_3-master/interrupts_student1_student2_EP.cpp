@@ -17,6 +17,11 @@ void FCFS(std::vector<PCB> &ready_queue) {
             );
 }
 
+int find_index_by_pid(const std::vector<PCB> &v, int pid) {
+    for (size_t i = 0; i < v.size(); ++i) if (v[i].PID == pid) return (int)i;
+    return -1;
+}
+
 std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std::vector<PCB> list_processes) {
 
     std::vector<PCB> ready_queue;   //The ready queue of processes
@@ -25,6 +30,7 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
                                     //to the "Process, Arrival time, Burst time" table that you
                                     //see in questions. You don't need to use it, I put it here
                                     //to make the code easier :).
+    std::vector<unsigned int> wait_wakeup; 
 
     unsigned int current_time = 0;
     PCB running;
@@ -51,25 +57,85 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
         for(auto &process : list_processes) {
             if(process.arrival_time == current_time) {//check if the AT = current time
                 //if so, assign memory and put the process into the ready queue
-                assign_memory(process);
+                bool mem_ok = assign_memory(process);
 
+                if(!mem_ok) {
+                    process.state = NOT_ASSIGNED;
+                    job_list.push_back(process);
+                    execution_status += print_exec_status(current_time, process.PID, NEW, NOT_ASSIGNED);
+                } else {
                 process.state = READY;  //Set the process state to READY
                 ready_queue.push_back(process); //Add the process to the ready queue
                 job_list.push_back(process); //Add it to the list of processes
 
                 execution_status += print_exec_status(current_time, process.PID, NEW, READY);
+                }
             }
         }
 
         ///////////////////////MANAGE WAIT QUEUE/////////////////////////
         //This mainly involves keeping track of how long a process must remain in the ready queue
-
+        if(!wait_queue.empty()) {
+            std::vector<PCB> still_waiting;
+            std::vector<unsigned int> still_wakeup;
+            for (size_t i = 0; i < wait_queue.size(); ++i) {
+                if (wait_wakeup[i] <= current_time) {
+                    // move to READY
+                    PCB proc = wait_queue[i];
+                    proc.state = READY;
+                    ready_queue.push_back(proc);
+                    execution_status += print_exec_status(current_time, proc.PID, WAITING, READY);
+                } else {
+                    still_waiting.push_back(wait_queue[i]);
+                    still_wakeup.push_back(wait_wakeup[i]);
+                }
+            }
+            wait_queue.swap(still_waiting);
+            wait_wakeup.swap(still_wakeup);
+        }
         /////////////////////////////////////////////////////////////////
 
         //////////////////////////SCHEDULER//////////////////////////////
-        FCFS(ready_queue); //example of FCFS is shown here
-        /////////////////////////////////////////////////////////////////
+         if (running.PID == -1) { // CPU idle: pick a process to run
+            if (!ready_queue.empty()) {
+                // find index of highest-priority process (max PID)
+                int best_idx = 0;
+                for (size_t i = 1; i < ready_queue.size(); ++i) {
+                    if (ready_queue[i].PID > ready_queue[best_idx].PID) best_idx = (int)i;
+                }
+                // move chosen to back so run_process (which pops back) runs it
+                if ((size_t)best_idx != ready_queue.size() - 1) std::swap(ready_queue[best_idx], ready_queue.back());
+                run_process(running, job_list, ready_queue, current_time);
+                execution_status += print_exec_status(current_time, running.PID, READY, RUNNING);
+            }
+        } else {
+            // Running: advance 1 ms
+            if (running.remaining_time > 0) running.remaining_time -= 1;
 
+            // Check if it should start I/O (Option A: calendar-time I/O)
+            if (running.io_freq > 0 && current_time > 0 && (current_time % running.io_freq) == 0) {
+                // Initiate I/O immediately
+                unsigned int wake_at = current_time + running.io_duration;
+                execution_status += print_exec_status(current_time, running.PID, RUNNING, WAITING);
+                running.state = WAITING;
+                wait_queue.push_back(running);
+                wait_wakeup.push_back(wake_at);
+                // Sync job list entry
+                sync_queue(job_list, running);
+                // free CPU
+                idle_CPU(running);
+            } else if (running.remaining_time == 0) {
+                // Process finished
+                execution_status += print_exec_status(current_time, running.PID, RUNNING, TERMINATED);
+                terminate_process(running, job_list);
+                idle_CPU(running);
+            } else {
+                // continue running (non-preemptive)
+            }
+        }
+
+        /////////////////////////////////////////////////////////////////
+        current_time++;
     }
     
     //Close the output table
