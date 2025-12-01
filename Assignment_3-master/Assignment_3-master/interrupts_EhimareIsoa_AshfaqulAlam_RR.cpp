@@ -17,11 +17,6 @@ void FCFS(std::vector<PCB> &ready_queue) {
             );
 }
 
-int find_index_by_pid(const std::vector<PCB> &v, int pid) {
-    for (size_t i = 0; i < v.size(); ++i) if (v[i].PID == pid) return (int)i;
-    return -1;
-}
-
 std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std::vector<PCB> list_processes) {
 
     std::vector<PCB> ready_queue;   //The ready queue of processes
@@ -37,8 +32,8 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
     //Initialize an empty running process
     idle_CPU(running);
 
-    const unsigned int QUANTUM = 100;
-    unsigned int slice_start = 0;
+    const unsigned int TIME_QUANTUM = 100; 
+    unsigned int time_slice_start = 0;
 
     std::string execution_status;
 
@@ -59,9 +54,9 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
         for(auto &process : list_processes) {
             if(process.arrival_time == current_time) {//check if the AT = current time
                 //if so, assign memory and put the process into the ready queue
-                bool mem_ok = assign_memory(process);
+                bool memory_is_assigned = assign_memory(process);
 
-                if (!mem_ok) {
+                if (!memory_is_assigned) {
                     process.state = NOT_ASSIGNED;
                     job_list.push_back(process);
                     execution_status += print_exec_status(current_time, process.PID, NEW, NOT_ASSIGNED);
@@ -82,12 +77,12 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
             std::vector<unsigned int> still_wakeup;
             for (size_t i = 0; i < wait_queue.size(); ++i) {
                 if (wait_wakeup[i] <= current_time) {
-                    PCB proc = wait_queue[i];
-                    proc.state = READY;
-                    proc.cpu_since_last_io = 0;                  
-                    ready_queue.push_back(proc);
-                    execution_status += print_exec_status(current_time, proc.PID, WAITING, READY);
-                    sync_queue(job_list, proc);                   
+                    PCB process = wait_queue[i];
+                    process.state = READY;
+                    process.cpu_time_since_last_io = 0;                  
+                    ready_queue.push_back(process);
+                    execution_status += print_exec_status(current_time, process.PID, WAITING, READY);
+                    sync_queue(job_list, process);                   
                 } else {
                     still_waiting.push_back(wait_queue[i]);
                     still_wakeup.push_back(wait_wakeup[i]);
@@ -103,17 +98,18 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
             if (!ready_queue.empty()) {
                 int idx = 0;
                 if (ready_queue.size() > 1) {
+                    //Rotate the queue so the next process becomes the first
                     std::rotate(ready_queue.begin(), ready_queue.begin() + 1, ready_queue.end());
                 }
                 run_process(running, job_list, ready_queue, current_time);
                 execution_status += print_exec_status(current_time, running.PID, READY, RUNNING);
-                slice_start = current_time;
+                time_slice_start = current_time;
             }
         } else {
 
             if (running.remaining_time > 0) running.remaining_time -= 1;
 
-            running.cpu_since_last_io++;
+            running.cpu_time_since_last_io++;
 
             if (running.remaining_time == 0) {
                 execution_status += print_exec_status(current_time, running.PID, RUNNING, TERMINATED);
@@ -121,8 +117,8 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
                 sync_queue(job_list, running);
                 idle_CPU(running);
             }
-            else if (running.io_freq > 0 && running.cpu_since_last_io == running.io_freq) {
-                running.cpu_since_last_io = 0;                       // reset counter
+            else if (running.io_freq > 0 && running.cpu_time_since_last_io == running.io_freq) {
+                running.cpu_time_since_last_io = 0;                       // reset counter
                 unsigned int wake_at = current_time + running.io_duration;
                 execution_status += print_exec_status(current_time, running.PID, RUNNING, WAITING);
                 running.state = WAITING;
@@ -132,7 +128,8 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
                 idle_CPU(running);
             }
             else {
-                if ((current_time - slice_start + 1) >= QUANTUM) {
+                if ((current_time - time_slice_start + 1) >= TIME_QUANTUM) {
+                    //Process has reached its time quantum so its pre-empted and pushed back into the ready queue
                     execution_status += print_exec_status(current_time, running.PID, RUNNING, READY);
                     running.state = READY;
                     ready_queue.push_back(running);

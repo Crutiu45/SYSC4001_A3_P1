@@ -17,11 +17,6 @@ void FCFS(std::vector<PCB> &ready_queue) {
             );
 }
 
-int find_index_by_pid(const std::vector<PCB> &v, int pid) {
-    for (size_t i = 0; i < v.size(); ++i) if (v[i].PID == pid) return (int)i;
-    return -1;
-}
-
 std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std::vector<PCB> list_processes) {
 
     std::vector<PCB> ready_queue;   //The ready queue of processes
@@ -30,7 +25,7 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
                                     //to the "Process, Arrival time, Burst time" table that you
                                     //see in questions. You don't need to use it, I put it here
                                     //to make the code easier :).
-    std::vector<unsigned int> wait_wakeup; 
+    std::vector<unsigned int> wait_wakeup; //The exact CPU time the process will finish its I/O (for each process in wait queue)
 
     unsigned int current_time = 0;
     PCB running;
@@ -57,11 +52,11 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
         for(auto &process : list_processes) {
             if(process.arrival_time == current_time) {//check if the AT = current time
                 //if so, assign memory and put the process into the ready queue
-                bool mem_ok = assign_memory(process);
+                bool memory_is_assigned = assign_memory(process);
 
-                if(!mem_ok) {
-                    process.state = NOT_ASSIGNED;
-                    job_list.push_back(process);
+                if(!memory_is_assigned) {
+                    process.state = NOT_ASSIGNED; //It couldn't enter the ready queue
+                    job_list.push_back(process); //Add it to the list of processes to still be tracked
                     execution_status += print_exec_status(current_time, process.PID, NEW, NOT_ASSIGNED);
                 } else {
                 process.state = READY;  //Set the process state to READY
@@ -81,21 +76,24 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
 
             for (size_t i = 0; i < wait_queue.size(); ++i) {
                 if (wait_wakeup[i] <= current_time) {
+                    //Process finished I/O so move it into the ready queue
+                    PCB process = wait_queue[i];
+                    process.state = READY; 
+                    process.cpu_time_since_last_io = 0;
 
-                    PCB proc = wait_queue[i];
-                    proc.state = READY;
-                    proc.cpu_since_last_io = 0;
-
-                    ready_queue.push_back(proc);
-                    execution_status += print_exec_status(current_time, proc.PID, WAITING, READY);
-                    sync_queue(job_list, proc);
+                    ready_queue.push_back(process);
+                    execution_status += print_exec_status(current_time, process.PID, WAITING, READY);
+                    sync_queue(job_list, process);
 
                 } else {
+                    //The process is not ready to wake up yet, so its kept in the wait queue
+                    //Copy it into temperory vectors
                     still_waiting.push_back(wait_queue[i]);
                     still_wakeup.push_back(wait_wakeup[i]);
                 }
             }
 
+            //rebuilds it wait queues and wait times safely
             wait_queue.swap(still_waiting);
             wait_wakeup.swap(still_wakeup);
         }
@@ -105,12 +103,13 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
         if (running.PID == -1) {
             if (!ready_queue.empty()) {
                 int best_idx = 0;
+                //Everytime the CPU is free schedule the process with the lowest pid
                 for (size_t i = 1; i < ready_queue.size(); ++i)
                     if (ready_queue[i].PID < ready_queue[best_idx].PID)
                         best_idx = (int)i;
 
                 if ((size_t)best_idx != ready_queue.size() - 1)
-                    std::swap(ready_queue[best_idx], ready_queue.back());
+                    std::swap(ready_queue[best_idx], ready_queue.back()); //swaps it process to the end of queue to be removed
 
                 run_process(running, job_list, ready_queue, current_time);
                 execution_status += print_exec_status(current_time, running.PID, READY, RUNNING);
@@ -119,7 +118,7 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
             if (running.remaining_time > 0)
                 running.remaining_time--;
 
-            running.cpu_since_last_io++;
+            running.cpu_time_since_last_io++;
 
             if (running.remaining_time == 0) {
                 execution_status += print_exec_status(current_time, running.PID, RUNNING, TERMINATED);
@@ -128,7 +127,7 @@ std::tuple<std::string /* add std::string for bonus mark */ > run_simulation(std
                 idle_CPU(running);
             }
 
-            else if (running.io_freq > 0 && running.cpu_since_last_io == running.io_freq) {
+            else if (running.io_freq > 0 && running.cpu_time_since_last_io == running.io_freq) {
 
                 unsigned int wake_at = current_time + running.io_duration;
 

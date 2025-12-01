@@ -59,7 +59,7 @@ struct PCB{
     unsigned int    size;
     unsigned int    arrival_time;
     int             start_time;
-    unsigned int    cpu_since_last_io;
+    unsigned int    cpu_time_since_last_io;
     unsigned int    processing_time;
     unsigned int    remaining_time;
     int             partition_number;
@@ -268,7 +268,7 @@ PCB add_process(std::vector<std::string> tokens) {
     process.io_freq = std::stoi(tokens[4]);
     process.io_duration = std::stoi(tokens[5]);
     process.start_time = -1;
-    process.cpu_since_last_io = 0;
+    process.cpu_time_since_last_io = 0;
     process.partition_number = -1;
     process.state = NOT_ASSIGNED;
 
